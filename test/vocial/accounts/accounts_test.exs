@@ -4,12 +4,19 @@ defmodule Vocial.AccountsTest do
   alias Vocial.Accounts
 
   describe "users" do
-    @valid_attrs %{username: "test", email: "test@test.com", active: true}
-
+    @valid_attrs %{
+      username: "test",
+      email: "test@test.com",
+      active: true,
+      password: "test",
+      password_confirmation: "test"
+    }
     def user_fixture(attrs \\ %{}) do
       with(create_attrs <- Map.merge(@valid_attrs, attrs), {:ok, user} <- Accounts.create_user(create_attrs))
       do
-        user
+        user |> Map.merge(%{password: nil, password_confirmation: nil})
+      else
+        error -> error
       end
     end
     test "list_users/0 returns all users" do
@@ -25,6 +32,18 @@ defmodule Vocial.AccountsTest do
     test "new_user/0 returns a blank changeset" do
       changeset = Accounts.new_user()
       assert changeset.__struct__ == Ecto.Changeset
+    end
+
+    test "create_user/1 fails to create the user without a password and password_confirmation" do
+      {:error, changeset} = user_fixture(%{password: nil, password_confirmation: nil})
+      assert !changeset.valid?
+    end
+
+    test "create_user/1 fails to create the user when the password and
+    the password_confirmation don't match" do
+      {:error, changeset} = user_fixture(%{password: "test",
+    password_confirmation: "fail"})
+      assert !changeset.valid?
     end
 
     test "create_user/1 creates the user in the db and returns it" do
