@@ -22,6 +22,8 @@
                         'Elixir.VocialWeb.PollController',
                         'Elixir.VocialWeb.PollView','Elixir.VocialWeb.Router',
                         'Elixir.VocialWeb.Router.Helpers',
+                        'Elixir.VocialWeb.SessionController',
+                        'Elixir.VocialWeb.SessionView',
                         'Elixir.VocialWeb.UserController',
                         'Elixir.VocialWeb.UserSocket',
                         'Elixir.VocialWeb.UserView']},
