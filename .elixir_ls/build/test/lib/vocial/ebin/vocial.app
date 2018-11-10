@@ -26,7 +26,8 @@
                         'Elixir.VocialWeb.SessionView',
                         'Elixir.VocialWeb.UserController',
                         'Elixir.VocialWeb.UserSocket',
-                        'Elixir.VocialWeb.UserView']},
+                        'Elixir.VocialWeb.UserView',
+                        'Elixir.VocialWeb.VerifyUserSession']},
               {registered,[]},
               {vsn,"0.0.1"},
               {mod,{'Elixir.Vocial.Application',[]}}]}.
