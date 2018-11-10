@@ -1,6 +1,17 @@
 defmodule VocialWeb.PollControllerTest do
   use VocialWeb.ConnCase
 
+  setup do
+    conn = build_conn()
+    {:ok, user} = Vocial.Accounts.create_user(%{
+      username: "test",
+      email: "test@test.com",
+      password: "test",
+      password_confirmation: "test"
+    })
+    {:ok, conn: conn, user: user}
+  end
+
   test "GET /polls", %{conn: conn} do
     {:ok, poll} =
       Vocial.Votes.create_poll_with_options(%{title: "Poll 1"}, [
