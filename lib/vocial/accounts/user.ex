@@ -21,6 +21,9 @@ defmodule Vocial.Accounts.User do
   def changeset(%User{} = user, attrs) do
     user
     |> cast(attrs, [:username, :email, :active, :password, :password_confirmation])
+    |> unique_constraint(:username)
+    |> validate_format(:email, ~r/@/)
+    |> validate_length(:username, min: 3, max: 100)
     |> validate_confirmation(:password, message: "does not match
     password!")
     |> encrypt_password()
