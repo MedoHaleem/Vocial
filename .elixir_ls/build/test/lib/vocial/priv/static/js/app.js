@@ -1670,9 +1670,15 @@ require.register("js/app.js", function(exports, require, module) {
 
 require("phoenix_html");
 
+var _socket = require("./socket");
+
+var _socket2 = _interopRequireDefault(_socket);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 });
 
-require.register("js/socket.js", function(exports, require, module) {
+;require.register("js/socket.js", function(exports, require, module) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1681,7 +1687,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _phoenix = require("phoenix");
 
-var socket = new _phoenix.Socket("/socket", { params: { token: window.userToken } });
+var socket = new _phoenix.Socket("/socket");
 
 // When you connect, you'll often need to authenticate the client.
 // For example, imagine you have an authentication plug, `MyAuth`,
@@ -1727,6 +1733,7 @@ var socket = new _phoenix.Socket("/socket", { params: { token: window.userToken 
 // Finally, pass the token on connect as below. Or remove it
 // from connect if you don't care about authentication.
 
+
 // NOTE: The contents of this file will only be executed if
 // you uncomment its entry in "assets/js/app.js".
 
@@ -1734,13 +1741,53 @@ var socket = new _phoenix.Socket("/socket", { params: { token: window.userToken 
 // and connect at the socket path in "lib/web/endpoint.ex":
 socket.connect();
 
-// Now that you are connected, you can join channels with a topic:
-var channel = socket.channel("topic:subtopic", {});
-channel.join().receive("ok", function (resp) {
-  console.log("Joined successfully", resp);
-}).receive("error", function (resp) {
-  console.log("Unable to join", resp);
-});
+// Only connect to the socket if the polls channel actually exists!
+var enableSocket = document.getElementById('enable-polls-channel');
+if (enableSocket) {
+  var pollId = enableSocket.getAttribute('data-poll-id');
+  var channel = socket.channel('polls:' + pollId, {});
+
+  // Utility functions
+  var onJoin = function onJoin(res, channel) {
+    document.querySelectorAll('.vote-button-manual').forEach(function (el) {
+      el.addEventListener('click', function (event) {
+        event.preventDefault();
+        pushVote(el, channel);
+      });
+    });
+    console.log('Joined channel:', res);
+  };
+  var pushVote = function pushVote(el, channel) {
+    channel.push('vote', { option_id: el.getAttribute('data-option-id') }).receive('ok', function (res) {
+      return console.log('You Voted!');
+    }).receive('error', function (res) {
+      return console.log('Failed to vote:', res);
+    });
+  };
+
+  channel.join().receive('ok', function (res) {
+    return onJoin(res, channel);
+  }).receive('error', function (res) {
+    return console.log('Failed to join channel:', res);
+  });
+
+  channel.on('pong', function (payload) {
+    console.log("The server has been PONG'd and all is well:", payload);
+  });
+  channel.on('new_vote', function (_ref) {
+    var option_id = _ref.option_id,
+        votes = _ref.votes;
+
+    document.getElementById('vote-count-' + option_id).innerHTML = votes;
+  });
+  document.getElementById("polls-ping").addEventListener("click", function () {
+    channel.push("ping").receive("ok", function (res) {
+      return console.log("Received PING response:", res.message);
+    }).receive("error", function (res) {
+      return console.log("Error sending PING:", res);
+    });
+  });
+}
 
 exports.default = socket;
 
