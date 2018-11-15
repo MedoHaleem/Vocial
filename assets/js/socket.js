@@ -57,8 +57,9 @@ socket.connect()
 // Only connect to the socket if the polls channel actually exists!
 const enableSocket = document.getElementById('enable-polls-channel');
 if (enableSocket) {
+  const remoteIp = document.getElementsByName('remote_ip')[0].getAttribute('content');
   const pollId = enableSocket.getAttribute('data-poll-id');
-  const channel = socket.channel('polls:' + pollId, {});
+  const channel = socket.channel('polls:' + pollId, {remote_ip: remoteIp });
 
   // Utility functions
   const onJoin = (res, channel) => {
