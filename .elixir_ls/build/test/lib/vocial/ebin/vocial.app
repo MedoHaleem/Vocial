@@ -9,6 +9,7 @@
                         'Elixir.Vocial.Application','Elixir.Vocial.DataCase',
                         'Elixir.Vocial.Repo','Elixir.Vocial.Votes',
                         'Elixir.Vocial.Votes.Image',
+                        'Elixir.Vocial.Votes.Message',
                         'Elixir.Vocial.Votes.Option',
                         'Elixir.Vocial.Votes.Poll',
                         'Elixir.Vocial.Votes.VoteRecord','Elixir.VocialWeb',

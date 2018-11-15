@@ -22,7 +22,7 @@ defmodule Vocial.VotesTest do
       with(
         create_attrs <- Enum.into(attrs, @valid_attrs),
         {:ok, poll} <- Votes.create_poll(create_attrs),
-        poll <- Repo.preload(poll, :options)
+        poll <- Repo.preload(poll, [:options, :image, :vote_records])
       ) do
         poll
       end
@@ -74,7 +74,7 @@ defmodule Vocial.VotesTest do
              Votes.create_option(%{title: "Sample Choice", votes: 0, poll_id: poll.id}),
            option <- Repo.preload(option, :poll) do
             votes_before = option.votes
-            {:ok, updated_option} = Votes.vote_on_option(option.id)
+            {:ok, updated_option} = Votes.vote_on_option(option.id, "127.0.0.1")
             assert (votes_before + 1) == updated_option.votes
       end
     end

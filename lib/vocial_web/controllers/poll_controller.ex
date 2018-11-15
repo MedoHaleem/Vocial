@@ -49,4 +49,8 @@ defmodule VocialWeb.PollController do
         conn |> put_flash(:alert, "Error creating poll!") |> redirect(to: poll_path(conn, :new))
     end
   end
+
+  def create(conn, %{"poll" => _poll_params, "options" => _options}=params) do
+    create(conn, Map.put(params, "image_data", nil))
+  end
 end
