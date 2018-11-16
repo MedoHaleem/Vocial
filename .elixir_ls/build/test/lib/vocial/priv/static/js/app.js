@@ -1674,11 +1674,188 @@ var _socket = require("./socket");
 
 var _socket2 = _interopRequireDefault(_socket);
 
+var _chat = require("./chat");
+
+var _chat2 = _interopRequireDefault(_chat);
+
+var _poll = require("./poll");
+
+var _poll2 = _interopRequireDefault(_poll);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+// Brunch automatically concatenates all files in your
+// watched paths. Those paths can be configured at
+// config.paths.watched in "brunch-config.js".
+//
+// However, those files will only be executed if
+// explicitly imported. The only exception are files
+// in vendor, which are never wrapped in imports and
+// therefore are always executed.
+
+// Import dependencies
+//
+// If you no longer want to use a dependency, remember
+// to also remove its path from "config.paths.watched".
+_poll2.default.connect(_socket2.default);
+
+// Import local files
+//
+// Local files can be imported directly using relative
+// paths "./socket" or full ones "web/static/js/socket".
+
+_chat2.default.connect(_socket2.default);
 
 });
 
-;require.register("js/socket.js", function(exports, require, module) {
+require.register("js/chat.js", function(exports, require, module) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _phoenix = require("phoenix");
+
+// Utility functions
+// Add a message to the list of chat messages
+var addMessage = function addMessage(author, message) {
+    var chatLog = document.querySelector(".chat-messages");
+    chatLog.innerHTML += "<li>\n      <span class=\"author\">&lt;" + author + "&gt;</span>\n      <span class=\"message\">" + message + "</span>";
+}; // Import Phoenix's Socket Library
+
+
+var pushMessage = function pushMessage(channel, author, message) {
+    channel.push("new_message", { author: author, message: message }).receive("ok", function (res) {
+        return console.log("Message sent!");
+    }).receive("error", function (res) {
+        return console.log("Failed to send message:", res);
+    });
+};
+// When we join the channel, do this
+var onJoin = function onJoin(res, channel) {
+    document.querySelectorAll(".chat-send").forEach(function (el) {
+        el.addEventListener("click", function (event) {
+            event.preventDefault();
+            var chatInput = document.querySelector(".chat-input");
+            var message = chatInput.value;
+            var author = document.querySelector(".author-input").value;
+            pushMessage(channel, author, message);
+            chatInput.value = "";
+        });
+    });
+    console.log("Joined channel:", res);
+};
+
+// Next, create a new Phoenix Socket to reuse
+var socket = new _phoenix.Socket("/socket");
+
+// Connect to the socket itself
+socket.connect();
+
+var connect = function connect(socket) {
+    // Only connect to the socket if the chat channel actually exists!
+    var enableLiveChat = document.getElementById("enable-chat-channel");
+    if (!enableLiveChat) {
+        return;
+    }
+
+    var chatroom = document.getElementById("enable-chat-channel").getAttribute("data-chatroom");
+
+    // Create a channel to handle joining/sending/receiving
+    var channel = socket.channel("chat:" + chatroom);
+
+    // Next, join the topic on the channel!
+    channel.join().receive("ok", function (res) {
+        return onJoin(res, channel);
+    }).receive("error", function (res) {
+        return console.log("Failed to join channel:", res);
+    });
+
+    channel.on("new_message", function (_ref) {
+        var author = _ref.author,
+            message = _ref.message;
+
+        addMessage(author, message);
+    });
+};
+
+// Finally, export the socket to be imported in app.js
+exports.default = { connect: connect };
+
+});
+
+require.register("js/poll.js", function(exports, require, module) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+// Push the vote up to the server
+var pushVote = function pushVote(el, channel) {
+  channel.push("vote", { option_id: el.getAttribute("data-option-id") }).receive("ok", function (res) {
+    return console.log("You Voted!");
+  }).receive("error", function (res) {
+    return console.log("Failed to vote:", res);
+  });
+};
+
+// When we join the channel, do this
+var onJoin = function onJoin(res, channel) {
+  document.querySelectorAll(".vote-button-manual").forEach(function (el) {
+    el.addEventListener("click", function (event) {
+      event.preventDefault();
+      pushVote(el, channel);
+    });
+  });
+  console.log("Joined channel:", res);
+};
+
+var connect = function connect(socket) {
+  var enableLivePolls = document.getElementById("enable-polls-channel");
+  if (!enableLivePolls) {
+    return;
+  }
+
+  // Pull the Poll Id to find the right topic from the data attribute
+  var pollId = enableLivePolls.getAttribute("data-poll-id");
+  // Get the stored remote IP for a user
+  var remoteIp = document.getElementsByName("remote_ip")[0].getAttribute("content");
+  // Create a channel to handle joining/sending/receiving
+  var channel = socket.channel("polls:" + pollId, { remote_ip: remoteIp });
+
+  // Next, join the topic on the channel!
+  channel.join().receive("ok", function (res) {
+    return onJoin(res, channel);
+  }).receive("error", function (res) {
+    return console.log("Failed to join channel:", res);
+  });
+
+  document.getElementById("polls-ping").addEventListener("click", function () {
+    channel.push("ping").receive("ok", function (res) {
+      return console.log("Received PING response:", res.message);
+    }).receive("error", function (res) {
+      return console.log("Error sending PING:", res);
+    });
+  });
+
+  channel.on("pong", function (payload) {
+    console.log("The server has been PONG'd and all is well:", payload);
+  });
+
+  channel.on("new_vote", function (_ref) {
+    var option_id = _ref.option_id,
+        votes = _ref.votes;
+
+    document.getElementById("vote-count-" + option_id).innerHTML = votes;
+  });
+};
+
+exports.default = { connect: connect };
+
+});
+
+require.register("js/socket.js", function(exports, require, module) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1687,109 +1864,14 @@ Object.defineProperty(exports, "__esModule", {
 
 var _phoenix = require("phoenix");
 
+// Next, create a new Phoenix Socket to reuse
 var socket = new _phoenix.Socket("/socket");
 
-// When you connect, you'll often need to authenticate the client.
-// For example, imagine you have an authentication plug, `MyAuth`,
-// which authenticates the session and assigns a `:current_user`.
-// If the current user exists you can assign the user's token in
-// the connection for use in the layout.
-//
-// In your "lib/web/router.ex":
-//
-//     pipeline :browser do
-//       ...
-//       plug MyAuth
-//       plug :put_user_token
-//     end
-//
-//     defp put_user_token(conn, _) do
-//       if current_user = conn.assigns[:current_user] do
-//         token = Phoenix.Token.sign(conn, "user socket", current_user.id)
-//         assign(conn, :user_token, token)
-//       else
-//         conn
-//       end
-//     end
-//
-// Now you need to pass this token to JavaScript. You can do so
-// inside a script tag in "lib/web/templates/layout/app.html.eex":
-//
-//     <script>window.userToken = "<%= assigns[:user_token] %>";</script>
-//
-// You will need to verify the user token in the "connect/2" function
-// in "lib/web/channels/user_socket.ex":
-//
-//     def connect(%{"token" => token}, socket) do
-//       # max_age: 1209600 is equivalent to two weeks in seconds
-//       case Phoenix.Token.verify(socket, "user socket", token, max_age: 1209600) do
-//         {:ok, user_id} ->
-//           {:ok, assign(socket, :user, user_id)}
-//         {:error, reason} ->
-//           :error
-//       end
-//     end
-//
-// Finally, pass the token on connect as below. Or remove it
-// from connect if you don't care about authentication.
-
-
-// NOTE: The contents of this file will only be executed if
-// you uncomment its entry in "assets/js/app.js".
-
-// To use Phoenix channels, the first step is to import Socket
-// and connect at the socket path in "lib/web/endpoint.ex":
+// Connect to the socket itself
+// Import Phoenix's Socket Library
 socket.connect();
 
-// Only connect to the socket if the polls channel actually exists!
-var enableSocket = document.getElementById('enable-polls-channel');
-if (enableSocket) {
-  var remoteIp = document.getElementsByName('remote_ip')[0].getAttribute('content');
-  var pollId = enableSocket.getAttribute('data-poll-id');
-  var channel = socket.channel('polls:' + pollId, { remote_ip: remoteIp });
-
-  // Utility functions
-  var onJoin = function onJoin(res, channel) {
-    document.querySelectorAll('.vote-button-manual').forEach(function (el) {
-      el.addEventListener('click', function (event) {
-        event.preventDefault();
-        pushVote(el, channel);
-      });
-    });
-    console.log('Joined channel:', res);
-  };
-  var pushVote = function pushVote(el, channel) {
-    channel.push('vote', { option_id: el.getAttribute('data-option-id') }).receive('ok', function (res) {
-      return console.log('You Voted!');
-    }).receive('error', function (res) {
-      return console.log('Failed to vote:', res);
-    });
-  };
-
-  channel.join().receive('ok', function (res) {
-    return onJoin(res, channel);
-  }).receive('error', function (res) {
-    return console.log('Failed to join channel:', res);
-  });
-
-  channel.on('pong', function (payload) {
-    console.log("The server has been PONG'd and all is well:", payload);
-  });
-  channel.on('new_vote', function (_ref) {
-    var option_id = _ref.option_id,
-        votes = _ref.votes;
-
-    document.getElementById('vote-count-' + option_id).innerHTML = votes;
-  });
-  document.getElementById("polls-ping").addEventListener("click", function () {
-    channel.push("ping").receive("ok", function (res) {
-      return console.log("Received PING response:", res.message);
-    }).receive("error", function (res) {
-      return console.log("Error sending PING:", res);
-    });
-  });
-}
-
+// Finally, export the socket to be imported in app.js
 exports.default = socket;
 
 });

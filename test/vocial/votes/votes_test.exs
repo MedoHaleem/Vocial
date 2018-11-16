@@ -22,7 +22,7 @@ defmodule Vocial.VotesTest do
       with(
         create_attrs <- Enum.into(attrs, @valid_attrs),
         {:ok, poll} <- Votes.create_poll(create_attrs),
-        poll <- Repo.preload(poll, [:options, :image, :vote_records])
+        poll <- Repo.preload(poll, [:options, :image, :vote_records, :messages])
       ) do
         poll
       end
@@ -88,4 +88,38 @@ defmodule Vocial.VotesTest do
       end
     end
   end
+
+  describe "messages" do
+
+    setup(%{user: user}) do
+      {:ok, poll} = Votes.create_poll(%{ title: "Sample Poll", user_id: user.id })
+      poll_messages = [ "Hello", "there", "World" ]
+      lobby_messages = [ "Polls", "are", "neat" ]
+      Enum.each(poll_messages, fn m ->
+        Votes.create_message(%{ message: m, author: "Someone", poll_id: poll.id })
+      end)
+      Enum.each(lobby_messages, fn m ->
+        Votes.create_message(%{ message: m, author: "Someone" })
+      end)
+      {:ok, poll: poll}
+    end
+
+    test "create_message/1 creates a message on a poll" do
+      with {:ok, message} <- Votes.create_message(%{ message: "Hello World", author: "Someone" }) do
+        assert Enum.any?(Votes.list_lobby_messages(), fn msg -> msg.id == message.id end)
+      end
+    end
+
+    test "list_lobby_messages/1 only includes lobby message" do
+      assert Enum.count(Votes.list_lobby_messages()) > 0
+      assert Enum.all?(Votes.list_lobby_messages(), &(is_nil(&1.poll_id)))
+    end
+
+    test "list_poll_messages/1 only includes poll message", %{poll: poll} do
+      assert Enum.count(Votes.list_poll_messages(poll.id)) > 0
+      assert Enum.all?(Votes.list_poll_messages(poll.id), &(&1.poll_id == poll.id))
+    end
+
+  end
+
 end

@@ -19,3 +19,8 @@ import "phoenix_html"
 // paths "./socket" or full ones "web/static/js/socket".
 
 import socket from "./socket"
+import LiveChat from "./chat";
+import LivePolls from "./poll";
+
+LivePolls.connect(socket);
+LiveChat.connect(socket);
