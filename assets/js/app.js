@@ -23,4 +23,4 @@ import LiveChat from "./chat";
 import LivePolls from "./poll";
 
 LivePolls.connect(socket);
-LiveChat.connect(socket);
+LiveChat.loadChat(socket);
