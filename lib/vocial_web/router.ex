@@ -18,6 +18,7 @@ defmodule VocialWeb.Router do
     pipe_through(:browser)
 
     get("/", PageController, :index)
+    get "/history", PageController, :history
     resources "/polls", PollController, only: [:index, :new, :create, :show]
     resources "/users", UserController, only: [:new, :show, :create]
     resources("/sessions", SessionController, only: [:create])
